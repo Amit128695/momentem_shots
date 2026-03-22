@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moments Shots | Luxury Photography Collective</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600&display=swap');
+        
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background-color: #f9f7f2; color: #1a1a1a; overflow-x: hidden; }
+        .serif { font-family: 'Playfair Display', serif; }
+        
+        /* Premium Textures & Grain */
+        .premium-grain::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999; opacity: 0.04;
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+        }
+
+        /* Horizontal Scroll Utility */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Image Reveal Animation */
+        .reveal-img { transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1); filter: grayscale(100%) contrast(1.05); }
+        .reveal-img:hover { filter: grayscale(0%) contrast(1.1); transform: scale(1.05); }
+
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="premium-grain" x-data="{ 
+    view: 'home', 
+    showModal: false,
+    selectedPackage: 'Wedding',
+    
+    // --- NEW: Admin Auth State ---
+    isAdminAuthenticated: false,
+    showOtpModal: false,
+    authStep: 1, // 1 for Phone, 2 for OTP
+    enteredPhone: '',
+    phoneError: false,
+    enteredOtp: '',
+    otpError: false,
+    correctOtp: '1234', // Demo OTP
+    
+    gallery: {
+        wedding: ['https://images.unsplash.com/photo-1519741497674-611481863552', 'https://images.unsplash.com/photo-1583939003579-730e3918a45a', 'https://images.unsplash.com/photo-1606800052052-a08af7148866', 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc'],
+        prewedding: ['https://images.unsplash.com/photo-1522673607200-16488321499b', 'https://images.unsplash.com/photo-1494774157365-9e04c6720e47', 'https://images.unsplash.com/photo-1529636760656-e09213d29506'],
+        birthday: ['https://images.unsplash.com/photo-1530103043960-ef38714abb15', 'https://images.unsplash.com/photo-1513151233558-d860c5398176', 'https://images.unsplash.com/photo-1464347744102-11db6282f854']
+    },
+    bookings: [
+        { id: 'BKG-001', name: 'Riya & Aman', type: 'Heritage Wedding', date: '2025-11-12', price: 150000, status: 'Completed' },
+        { id: 'BKG-002', name: 'Vikram & Sneha', type: 'Cinematic Pre-Wedding', date: '2025-12-05', price: 45000, status: 'Completed' },
+        { id: 'BKG-003', name: 'The Malhotras', type: 'Vibrant Birthday', date: '2026-01-15', price: 15000, status: 'Completed' },
+        { id: 'BKG-004', name: 'Kabir & Ananya', type: 'Heritage Wedding', date: '2026-02-20', price: 150000, status: 'Completed' },
+        { id: 'BKG-005', name: 'Arjun Verma', type: 'Cinematic Pre-Wedding', date: '2026-03-10', price: 45000, status: 'Pending' },
+        { id: 'BKG-006', name: 'Sharma Family', type: 'Vibrant Birthday', date: '2026-03-18', price: 15000, status: 'Pending' }
+    ],
+    
+    // --- NEW: Auth & Export Methods ---
+    openDashboard() {
+        if(this.isAdminAuthenticated) {
+            this.view = 'dashboard';
+        } else {
+            this.showOtpModal = true;
+            this.authStep = 1;
+            this.enteredPhone = '';
+            this.phoneError = false;
+            this.enteredOtp = '';
+            this.otpError = false;
+        }
+    },
+    requestOtp() {
+        // Simple demo validation: check if number is at least 10 digits
+        if(this.enteredPhone.length >= 10) {
+            this.phoneError = false;
+            this.authStep = 2; // Move to OTP step
+        } else {
+            this.phoneError = true;
+        }
+    },
+    verifyOtp() {
+        if(this.enteredOtp === this.correctOtp) {
+            this.isAdminAuthenticated = true;
+            this.showOtpModal = false;
+            this.enteredOtp = '';
+            this.enteredPhone = '';
+            this.otpError = false;
+            this.view = 'dashboard';
+        } else {
+            this.otpError = true;
+            this.enteredOtp = '';
+        }
+    },
+    exportToCSV() {
+        const headers = ['Booking ID', 'Client Name', 'Package Type', 'Date', 'Price (INR)', 'Status'];
+        const rows = this.bookings.map(b => [b.id, b.name, b.type, b.date, b.price, b.status]);
+        
+        let csvContent = 'data:text/csv;charset=utf-8,' 
+            + headers.join(',') + '\n' 
+            + rows.map(e => e.join(',')).join('\n');
+            
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', 'MomentsShots_Bookings_2026.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}">
+
+    <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-stone-100 px-6 py-4 flex justify-between items-center">
+        <div @click="view = 'home'" class="text-2xl font-bold tracking-tighter serif cursor-pointer italic text-amber-900">Moments Shots</div>
+        <div class="hidden lg:flex space-x-8 text-[10px] uppercase tracking-[0.3em] font-bold text-stone-500 items-center">
+            <button @click="view = 'home'" :class="view === 'home' ? 'text-black border-b border-black' : ''">Home</button>
+            <button @click="view = 'wedding'" :class="view === 'wedding' ? 'text-black border-b border-black' : ''">Weddings</button>
+            <button @click="view = 'prewedding'" :class="view === 'prewedding' ? 'text-black border-b border-black' : ''">Pre-Wedding</button>
+            <button @click="view = 'birthday'" :class="view === 'birthday' ? 'text-black border-b border-black' : ''">Birthdays</button>
+            <button @click="view = 'pricing'" :class="view === 'pricing' ? 'text-black border-b border-black' : ''">Investment</button>
+            
+            <button @click="openDashboard()" :class="view === 'dashboard' ? 'text-amber-700 border-b border-amber-700' : 'text-amber-900'">Admin Dashboard</button>
+            
+            <button @click="showModal = true" class="bg-black text-white px-8 py-2 rounded-full hover:bg-amber-900 transition duration-500">Book Now</button>
+        </div>
+    </nav>
+
+    <div x-show="view === 'home'" x-transition:enter="transition duration-700">
+        <header class="h-screen relative flex items-center justify-center overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=1920&q=90" class="absolute inset-0 w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black/40"></div>
+            <div class="relative text-center text-white px-4">
+                <p class="uppercase tracking-[0.6em] text-[10px] mb-6">India's Premier Visual Storytellers</p>
+                <h1 class="text-6xl md:text-9xl serif italic">Making Memories</h1>
+                <div class="mt-12">
+                    <button @click="view = 'wedding'" class="bg-white text-black px-12 py-5 text-[10px] uppercase tracking-widest font-bold hover:bg-stone-200 transition">Explore Portfolio</button>
+                </div>
+            </div>
+        </header>
+
+        <section class="py-24 bg-white overflow-hidden">
+            <div class="px-8 mb-12 flex justify-between items-end max-w-7xl mx-auto">
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.4em] text-amber-700 font-bold mb-2">Portfolio Snapshots</p>
+                    <h2 class="text-4xl md:text-5xl serif italic">Moments in Motion</h2>
+                </div>
+                <p class="hidden md:block text-[10px] uppercase tracking-widest text-stone-400 italic">Swipe to explore categories &rarr;</p>
+            </div>
+
+            <div class="flex overflow-x-auto pb-12 hide-scrollbar gap-8 px-8 snap-x">
+                <div class="flex-none w-[300px] md:w-[450px] snap-center cursor-pointer" @click="view = 'wedding'">
+                    <div class="h-[550px] overflow-hidden bg-stone-100">
+                        <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover reveal-img">
+                    </div>
+                    <div class="mt-6">
+                        <h3 class="serif italic text-2xl">The Royal Wedding</h3>
+                        <p class="text-[9px] uppercase tracking-widest text-stone-400 mt-1">Heritage & Luxury</p>
+                    </div>
+                </div>
+
+                <div class="flex-none w-[300px] md:w-[450px] snap-center cursor-pointer" @click="view = 'prewedding'">
+                    <div class="h-[550px] overflow-hidden bg-stone-100">
+                        <img src="https://images.unsplash.com/photo-1522673607200-16488321499b?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover reveal-img">
+                    </div>
+                    <div class="mt-6">
+                        <h3 class="serif italic text-2xl">Golden Hour Escapes</h3>
+                        <p class="text-[9px] uppercase tracking-widest text-stone-400 mt-1">Pre-Wedding Cinematic</p>
+                    </div>
+                </div>
+
+                <div class="flex-none w-[300px] md:w-[450px] snap-center cursor-pointer" @click="view = 'birthday'">
+                    <div class="h-[550px] overflow-hidden bg-stone-100">
+                        <img src="https://images.unsplash.com/photo-1464347744102-11db6282f854?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover reveal-img">
+                    </div>
+                    <div class="mt-6">
+                        <h3 class="serif italic text-2xl">Vibrant Celebrations</h3>
+                        <p class="text-[9px] uppercase tracking-widest text-stone-400 mt-1">Birthdays & Private Galas</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-24 bg-stone-50 border-y border-stone-100">
+            <div class="max-w-6xl mx-auto px-8 grid md:grid-cols-2 gap-20 items-center">
+                <div class="relative group">
+                    <img src="https://images.unsplash.com/photo-1554048612-b6a482bc67e5?auto=format&fit=crop&w=800&q=80" class="w-full h-[650px] object-cover shadow-2xl transition duration-700 group-hover:scale-[1.02]">
+                    <div class="absolute -bottom-10 -right-10 bg-amber-900 text-white p-12 hidden md:block">
+                        <p class="text-4xl serif italic">12+</p>
+                        <p class="text-[10px] uppercase tracking-widest mt-2">Years of Excellence</p>
+                    </div>
+                </div>
+                <div class="space-y-8">
+                    <p class="text-[10px] uppercase tracking-[0.4em] text-amber-700 font-bold">Know About Us</p>
+                    <h2 class="text-5xl md:text-6xl serif italic leading-tight">Capturing the soul, <br>not just the scene.</h2>
+                    <p class="text-stone-600 leading-relaxed italic text-lg">
+                        Moments Shots is a luxury photography collective based in Mumbai, curated for those who value authenticity over artifice.
+                    </p>
+                    <p class="text-stone-500 leading-relaxed text-sm">
+                        Founded by a group of visual artists, we’ve spent over a decade documenting the quiet glances, the grand entrances, and everything in between. We blend documentary storytelling with editorial perfection to ensure your memories feel like a cinematic masterpiece.
+                    </p>
+                    <div class="pt-8 border-t border-stone-100 flex gap-12">
+                        <div><p class="font-bold text-xl serif">500+</p><p class="text-[9px] uppercase text-stone-400 tracking-widest">Stories Told</p></div>
+                        <div><p class="font-bold text-xl serif">25+</p><p class="text-[9px] uppercase text-stone-400 tracking-widest">Global Awards</p></div>
+                        <div><p class="font-bold text-xl serif">2026</p><p class="text-[9px] uppercase text-stone-400 tracking-widest">Limited Dates</p></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-24 bg-white">
+            <div class="max-w-6xl mx-auto px-8">
+                <div class="grid md:grid-cols-3 gap-12">
+                    <div class="p-10 border border-stone-100 bg-stone-50/30">
+                        <i class="fas fa-quote-left text-amber-900/20 text-4xl mb-6"></i>
+                        <p class="italic text-stone-600 leading-relaxed mb-8">"They didn't just take photos; they captured the emotions we didn't even know were showing. Simply world-class."</p>
+                        <div class="flex items-center gap-4">
+                            <img src="https://images.unsplash.com/photo-1621012430307-b4774b78d3cb?auto=format&fit=crop&w=100" class="w-10 h-10 rounded-full object-cover">
+                            <p class="text-[10px] font-bold uppercase tracking-widest">Riya & Aman</p>
+                        </div>
+                    </div>
+                    <div class="p-10 border border-stone-100 bg-stone-50/30">
+                        <i class="fas fa-quote-left text-amber-900/20 text-4xl mb-6"></i>
+                        <p class="italic text-stone-600 leading-relaxed mb-8">"The pre-wedding shoot felt like a high-end film production. The results were beyond our wildest dreams."</p>
+                        <div class="flex items-center gap-4">
+                            <img src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=100" class="w-10 h-10 rounded-full object-cover">
+                            <p class="text-[10px] font-bold uppercase tracking-widest">Vikram & Sneha</p>
+                        </div>
+                    </div>
+                    <div class="p-10 border border-stone-100 bg-stone-50/30">
+                        <i class="fas fa-quote-left text-amber-900/20 text-4xl mb-6"></i>
+                        <p class="italic text-stone-600 leading-relaxed mb-8">"Professional, punctual, and incredibly talented. They made our daughter's birthday look like a dream."</p>
+                        <div class="flex items-center gap-4">
+                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100" class="w-10 h-10 rounded-full object-cover">
+                            <p class="text-[10px] font-bold uppercase tracking-widest">The Malhotras</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <template x-for="cat in ['wedding', 'prewedding', 'birthday']">
+        <div x-show="view === cat" x-transition class="pt-32 pb-24 px-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-20">
+                    <h2 class="text-6xl serif italic capitalize" x-text="cat + ' Portfolio'"></h2>
+                    <button @click="view = 'home'" class="mt-4 text-[10px] uppercase tracking-widest text-stone-400 hover:text-black">&larr; Back Home</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <template x-for="img in gallery[cat]">
+                        <div class="h-[600px] overflow-hidden bg-stone-100">
+                            <img :src="img + '?auto=format&fit=crop&w=1000&q=85'" class="w-full h-full object-cover reveal-img" loading="lazy">
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <div x-show="view === 'pricing'" x-transition class="pt-32 pb-24 bg-stone-900 text-white min-h-screen">
+        <div class="max-w-6xl mx-auto px-8">
+            <h2 class="text-5xl md:text-7xl serif italic text-center mb-24">Investment</h2>
+            <div class="grid md:grid-cols-3 gap-12">
+                <template x-for="pkg in [
+                    { name: 'Heritage Wedding', price: '₹1,50,000', detail: '2 Photographers | 40 Page Album', type: 'Wedding' },
+                    { name: 'Cinematic Pre-Wedding', price: '₹45,000', detail: '2 Locations | Drone Coverage', type: 'Pre-Wedding' },
+                    { name: 'Vibrant Birthday', price: '₹15,000', detail: '3 Hours | 100+ Edits', type: 'Birthday' }
+                ]">
+                    <div class="p-10 border border-white/10 hover:border-amber-700 transition flex flex-col justify-between">
+                        <div>
+                            <h3 class="serif text-3xl mb-4 italic" x-text="pkg.name"></h3>
+                            <p class="text-stone-500 text-[10px] uppercase tracking-widest mb-10" x-text="pkg.detail"></p>
+                        </div>
+                        <div>
+                            <p class="text-4xl font-light mb-10" x-text="pkg.price"></p>
+                            <button @click="showModal = true; selectedPackage = pkg.type" class="w-full py-4 bg-white text-black text-[10px] font-bold uppercase tracking-widest hover:bg-amber-700 transition">Book Now</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="view === 'dashboard'" x-transition class="pt-32 pb-24 px-8 min-h-screen bg-stone-50">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex justify-between items-end mb-12">
+                <div>
+                    <h2 class="text-5xl serif italic">Booking Analytics</h2>
+                    <p class="text-[10px] uppercase tracking-widest text-stone-400 mt-2">Manage your collective's schedule</p>
+                </div>
+                <div class="flex gap-4">
+                    <button @click="exportToCSV()" class="bg-amber-900 text-white px-8 py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-black transition shadow-lg flex items-center gap-2">
+                        <i class="fas fa-file-excel"></i> Export CSV
+                    </button>
+                    <button @click="isAdminAuthenticated = false; view = 'home'" class="bg-stone-200 text-stone-600 px-8 py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-stone-300 transition shadow-lg">
+                        Logout
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white border border-stone-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-stone-100 border-b border-stone-200">
+                                <th class="p-4 text-[10px] font-bold uppercase tracking-widest text-stone-500">Booking ID</th>
+                                <th class="p-4 text-[10px] font-bold uppercase tracking-widest text-stone-500">Client Name</th>
+                                <th class="p-4 text-[10px] font-bold uppercase tracking-widest text-stone-500">Package</th>
+                                <th class="p-4 text-[10px] font-bold uppercase tracking-widest text-stone-500">Date</th>
+                                <th class="p-4 text-[10px] font-bold uppercase tracking-widest text-stone-500">Amount</th>
+                                <th class="p-4 text-[10px] font-bold uppercase tracking-widest text-stone-500">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="booking in bookings">
+                                <tr class="border-b border-stone-100 hover:bg-stone-50 transition">
+                                    <td class="p-4 font-mono text-sm text-stone-600" x-text="booking.id"></td>
+                                    <td class="p-4 font-semibold text-stone-800" x-text="booking.name"></td>
+                                    <td class="p-4 text-sm text-stone-600" x-text="booking.type"></td>
+                                    <td class="p-4 text-sm text-stone-600" x-text="booking.date"></td>
+                                    <td class="p-4 font-mono text-sm text-stone-800" x-text="'₹' + booking.price.toLocaleString('en-IN')"></td>
+                                    <td class="p-4">
+                                        <span class="px-3 py-1 text-[9px] uppercase tracking-widest font-bold rounded-full" 
+                                              :class="booking.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+                                              x-text="booking.status">
+                                        </span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                <div class="bg-white border border-stone-200 p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-stone-400 mb-1">Total Revenue</p>
+                        <p class="text-3xl serif italic" x-text="'₹' + bookings.reduce((sum, b) => sum + b.price, 0).toLocaleString('en-IN')"></p>
+                    </div>
+                    <i class="fas fa-wallet text-3xl text-stone-200"></i>
+                </div>
+                <div class="bg-white border border-stone-200 p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-stone-400 mb-1">Total Bookings</p>
+                        <p class="text-3xl serif italic" x-text="bookings.length"></p>
+                    </div>
+                    <i class="fas fa-camera text-3xl text-stone-200"></i>
+                </div>
+                <div class="bg-white border border-stone-200 p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-stone-400 mb-1">Upcoming Shoots</p>
+                        <p class="text-3xl serif italic" x-text="bookings.filter(b => b.status === 'Pending').length"></p>
+                    </div>
+                    <i class="far fa-calendar-alt text-3xl text-stone-200"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
+        <div class="bg-white max-w-xl w-full p-12 relative shadow-2xl" @click.away="showModal = false">
+            <button @click="showModal = false" class="absolute top-8 right-8 text-stone-300 hover:text-black"><i class="fas fa-times"></i></button>
+            <h2 class="serif text-4xl mb-2 italic">Book Your Date</h2>
+            <p class="text-[10px] text-stone-400 uppercase tracking-widest mb-10">Limited Availability for 2026</p>
+            <form class="space-y-6">
+                <input type="text" placeholder="Your Name" class="w-full p-4 bg-stone-50 border border-stone-100 outline-none focus:border-amber-700">
+                <select x-model="selectedPackage" class="w-full p-4 bg-stone-50 border border-stone-100 outline-none focus:border-amber-700">
+                    <option value="Wedding">Wedding Session</option>
+                    <option value="Pre-Wedding">Pre-Wedding Shoot</option>
+                    <option value="Birthday">Birthday Event</option>
+                </select>
+                <button type="button" @click="window.open('https://wa.me/911234567890?text=Hi, I would like to Book a ' + selectedPackage + ' session.')" class="w-full bg-black text-white py-5 font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-3">
+                    <i class="fab fa-whatsapp text-lg"></i> Book via WhatsApp
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div x-show="showOtpModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
+        <div class="bg-white max-w-sm w-full p-10 relative shadow-2xl text-center" @click.away="showOtpModal = false">
+            <button @click="showOtpModal = false" class="absolute top-6 right-6 text-stone-300 hover:text-black"><i class="fas fa-times"></i></button>
+            
+            <i class="fas fa-lock text-3xl text-amber-900 mb-4"></i>
+            <h2 class="serif text-3xl mb-2 italic">Admin Access</h2>
+
+            <div x-show="authStep === 1">
+                <p class="text-[10px] text-stone-400 uppercase tracking-widest mb-8">Enter registered mobile number</p>
+                <form @submit.prevent="requestOtp()" class="space-y-6">
+                    <div>
+                        <input type="tel" x-model="enteredPhone" placeholder="Mobile Number" class="w-full p-4 bg-stone-50 border outline-none text-center tracking-[0.2em] text-lg font-bold" :class="phoneError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-amber-700'">
+                        <p x-show="phoneError" class="text-red-500 text-[10px] uppercase tracking-widest mt-3">Enter a valid 10-digit number.</p>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-black text-white py-4 font-bold uppercase tracking-widest text-[10px] hover:bg-amber-900 transition">
+                        Request OTP
+                    </button>
+                </form>
+            </div>
+
+            <div x-show="authStep === 2" x-cloak>
+                <p class="text-[10px] text-stone-400 uppercase tracking-widest mb-8">
+                    OTP sent to <span x-text="enteredPhone" class="font-bold text-black"></span><br>
+                    (Demo: 1234)
+                </p>
+                <form @submit.prevent="verifyOtp()" class="space-y-6">
+                    <div>
+                        <input type="password" x-model="enteredOtp" placeholder="••••" class="w-full p-4 bg-stone-50 border outline-none text-center tracking-[1em] text-2xl font-bold" :class="otpError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-amber-700'">
+                        <p x-show="otpError" class="text-red-500 text-[10px] uppercase tracking-widest mt-3">Incorrect Passcode. Try again.</p>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button type="button" @click="authStep = 1; enteredOtp = ''; otpError = false" class="w-1/3 bg-stone-200 text-stone-600 py-4 font-bold uppercase tracking-widest text-[10px] hover:bg-stone-300 transition">
+                            Back
+                        </button>
+                        <button type="submit" class="w-2/3 bg-black text-white py-4 font-bold uppercase tracking-widest text-[10px] hover:bg-amber-900 transition">
+                            Verify & Enter
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+
+    <footer class="py-20 px-8 bg-white border-t border-stone-100 text-center">
+        <h4 class="serif text-2xl italic mb-6">Moments Shots Collective</h4>
+        <p class="text-[9px] text-stone-400 uppercase tracking-[0.5em]">© 2026 Mumbai • Luxury Visual Storytelling</p>
+    </footer>
+
+    <a href="https://wa.me/917217864456" class="fixed bottom-10 right-10 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl z-50 hover:scale-110 transition">
+        <i class="fab fa-whatsapp text-2xl"></i>
+    </a>
+</body>
+</html>
